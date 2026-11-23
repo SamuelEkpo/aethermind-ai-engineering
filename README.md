@@ -354,7 +354,7 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 ### Phase 3 — Tokenizer Development
 - [ ] Select initial training corpus.
 - [ ] Prepare and clean datasets.
-- [ ] Implement tokenizer training pipeline.
+- [x] Implement tokenizer training pipeline.
 - [ ] Train initial tokenizer.
 - [ ] Evaluate tokenization quality.
 - [ ] Version tokenizer artifacts.
@@ -421,7 +421,7 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 | Technology Stack | Proposed |
 | Architecture | Proposed |
 | Hardware Assessment | Pending |
-| Tokenizer | Not Started |
+| Tokenizer | In Progress (training pipeline implemented, not yet trained on a real corpus) |
 | Custom Model | Not Started |
 | Training Pipeline | Not Started |
 | Hybrid Integration | Not Started |

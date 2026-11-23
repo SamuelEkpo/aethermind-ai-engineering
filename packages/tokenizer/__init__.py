@@ -1,11 +1,5 @@
-"""
-tokenizer — custom BPE/SentencePiece tokenizer training and loading for
-natural language + source code.
+"""AetherMind's own BPE tokenizer — see `bpe.BPETokenizer`."""
 
-Planned contents (see roadmap Phase 3):
-    - train.py     tokenizer training pipeline over the curated corpus
-    - encode.py    load a trained tokenizer and expose encode/decode
-    - vocab.py     vocabulary inspection/versioning utilities
-"""
+from packages.tokenizer.bpe import DEFAULT_SPECIAL_TOKENS, BPETokenizer
 
-__all__: list[str] = []
+__all__ = ["BPETokenizer", "DEFAULT_SPECIAL_TOKENS"]
