@@ -425,7 +425,7 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 | Custom Model | Architecture complete + minimal training loop (TINY verified) |
 | Training Pipeline | Minimal loop working (train_lm.py); needs scaling & logging |
 | Hybrid Integration | Not Started |
-| Web Application | Not Started |
+| Web Application | API generate endpoint live (/v1/generate, /v1/model) |
 | Deployment | Not Started |
 
 **Current stage:** Model Architecture + initial training loop (Phase 4 largely complete).
