@@ -1,9 +1,8 @@
 """Shared pytest fixtures for the AetherMind test suite."""
 
 import pytest
-from fastapi.testclient import TestClient
-
 from apps.api.main import create_app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
