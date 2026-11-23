@@ -218,3 +218,20 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# AetherMind project-specific
+datasets/raw/*
+!datasets/raw/.gitkeep
+datasets/processed/*
+!datasets/processed/.gitkeep
+datasets/curated/*
+!datasets/curated/.gitkeep
+training/checkpoints/*
+!training/checkpoints/.gitkeep
+mlruns/
+*.ckpt
+*.pt
+*.safetensors
+node_modules/
+.next/
+.env.local
