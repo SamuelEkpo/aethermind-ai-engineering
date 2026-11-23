@@ -9,7 +9,7 @@ Usage (after `pip install -e ".[ml]"`):
 
     python -m training.scripts.train_lm \
         --config tiny \
-        --steps 200 \
+        --steps 500 \
         --batch-size 8 \
         --seq-len 64 \
         --lr 3e-4 \
@@ -66,6 +66,23 @@ def load_token_ids(tokenizer_path: Path, corpus_dir: Path) -> list[int]:
     return ids
 
 
+@torch.no_grad()
+def evaluate(model: AetherMindLM, loader: DataLoader, device: torch.device) -> float:
+    model.eval()
+    total_loss = 0.0
+    n = 0
+    for batch in loader:
+        input_ids = batch["input_ids"].to(device)
+        labels = batch["labels"].to(device)
+        _, loss = model(input_ids, labels=labels)
+        total_loss += loss.item()
+        n += 1
+        if n >= 20:  # cap eval cost on small runs
+            break
+    model.train()
+    return total_loss / max(n, 1)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", choices=list(CONFIGS.keys()), default="tiny")
@@ -73,6 +90,8 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--seq-len", type=int, default=64)
     parser.add_argument("--lr", type=float, default=3e-4)
+    parser.add_argument("--val-ratio", type=float, default=0.1)
+    parser.add_argument("--eval-every", type=int, default=50)
     parser.add_argument(
         "--tokenizer",
         type=Path,
@@ -109,29 +128,41 @@ def main() -> None:
     token_ids = load_token_ids(args.tokenizer, args.corpus_dir)
     print(f"Corpus tokens: {len(token_ids):,}")
 
-    seq_len = min(args.seq_len, config.max_seq_len)
-    dataset = TextDataset(token_ids, seq_len=seq_len)
-    if len(dataset) == 0:
-        raise SystemExit("Corpus too short for the requested seq_len")
+    # Chronological split — last val_ratio held out
+    split = int(len(token_ids) * (1.0 - args.val_ratio))
+    train_ids = token_ids[:split]
+    val_ids = token_ids[split:]
 
-    loader = DataLoader(
-        dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
+    seq_len = min(args.seq_len, config.max_seq_len)
+    train_ds = TextDataset(train_ids, seq_len=seq_len)
+    val_ds = TextDataset(val_ids, seq_len=seq_len)
+    if len(train_ds) == 0:
+        raise SystemExit("Training split too short for the requested seq_len")
+
+    train_loader = DataLoader(
+        train_ds, batch_size=args.batch_size, shuffle=True, drop_last=True
     )
+    val_loader = DataLoader(
+        val_ds, batch_size=args.batch_size, shuffle=False, drop_last=False
+    )
+
     model = AetherMindLM(config).to(device)
     print(f"Parameters: {model.count_parameters():,}")
+    print(f"Train windows: {len(train_ds):,} | Val windows: {len(val_ds):,}")
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.1)
 
     model.train()
     step = 0
     t0 = time.time()
-    data_iter = iter(loader)
+    best_val = float("inf")
+    data_iter = iter(train_loader)
 
     while step < args.steps:
         try:
             batch = next(data_iter)
         except StopIteration:
-            data_iter = iter(loader)
+            data_iter = iter(train_loader)
             batch = next(data_iter)
 
         input_ids = batch["input_ids"].to(device)
@@ -146,11 +177,24 @@ def main() -> None:
         step += 1
         if step % 20 == 0 or step == 1:
             elapsed = time.time() - t0
-            print(f"step {step:4d}/{args.steps}  loss={loss.item():.4f}  ({elapsed:.1f}s)")
+            print(f"step {step:4d}/{args.steps}  train_loss={loss.item():.4f}  ({elapsed:.1f}s)")
 
-    args.output.mkdir(parents=True, exist_ok=True)
-    model.save_pretrained(args.output)
-    print(f"Saved checkpoint -> {args.output}")
+        if step % args.eval_every == 0 or step == args.steps:
+            if len(val_ds) > 0:
+                val_loss = evaluate(model, val_loader, device)
+                print(f"         val_loss={val_loss:.4f}")
+                if val_loss < best_val:
+                    best_val = val_loss
+                    args.output.mkdir(parents=True, exist_ok=True)
+                    model.save_pretrained(args.output)
+                    print(f"         saved best -> {args.output}")
+
+    # Always save final weights as well
+    final_dir = args.output.parent / (args.output.name + "_final")
+    final_dir.mkdir(parents=True, exist_ok=True)
+    model.save_pretrained(final_dir)
+    print(f"Saved final checkpoint -> {final_dir}")
+    print(f"Best val loss: {best_val:.4f}")
 
 
 if __name__ == "__main__":
