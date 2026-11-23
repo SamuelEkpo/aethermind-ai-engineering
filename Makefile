@@ -1,4 +1,4 @@
-.PHONY: install install-ml dev test lint typecheck format check up down logs clean
+.PHONY: install install-ml dev test lint typecheck format check up down logs clean corpus train eval generate
 
 install:
 	pip install -e ".[dev]"
@@ -10,10 +10,10 @@ dev:
 	uvicorn apps.api.main:app --reload --host 0.0.0.0 --port 8000
 
 test:
-	pytest tests/unit
+	python -m pytest tests/unit -v
 
 test-all:
-	pytest
+	python -m pytest -v
 
 lint:
 	ruff check apps packages tests
@@ -37,5 +37,19 @@ logs:
 	docker compose logs -f
 
 clean:
-	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	rm -rf .pytest_cache .ruff_cache .mypy_cache htmlcov .coverage
+
+# --- Model workflow ---
+
+corpus:
+	python scripts/build_seed_corpus.py
+
+train:
+	python -m training.scripts.train_lm --config tiny --steps 500 --batch-size 8 --seq-len 64 --eval-every 50
+
+eval:
+	python -m training.scripts.evaluate_lm --checkpoint training/checkpoints/lm_tiny
+
+generate:
+	python -m training.scripts.generate --prompt "def " --max-new-tokens 40
