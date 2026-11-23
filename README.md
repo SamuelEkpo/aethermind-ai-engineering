@@ -355,9 +355,9 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 - [ ] Select initial training corpus.
 - [ ] Prepare and clean datasets.
 - [x] Implement tokenizer training pipeline.
-- [ ] Train initial tokenizer.
-- [ ] Evaluate tokenization quality.
-- [ ] Version tokenizer artifacts.
+- [x] Train initial tokenizer.
+- [x] Evaluate tokenization quality.
+- [x] Version tokenizer artifacts.
 
 ### Phase 4 — Custom Transformer Development
 - [ ] Implement embeddings.
@@ -421,7 +421,7 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 | Technology Stack | Proposed |
 | Architecture | Proposed |
 | Hardware Assessment | Pending |
-| Tokenizer | In Progress (training pipeline implemented, not yet trained on a real corpus) |
+| Tokenizer | In Progress (trained on a small seed corpus; needs a real, licensed corpus next) |
 | Custom Model | Not Started |
 | Training Pipeline | Not Started |
 | Hybrid Integration | Not Started |
