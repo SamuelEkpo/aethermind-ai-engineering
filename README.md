@@ -4,7 +4,7 @@
 
 **A hybrid artificial intelligence research and development platform focused on building custom language models, code intelligence systems, and intelligent developer tools.**
 
-![Project Status](https://img.shields.io/badge/Status-Planning%20%26%20Architecture-blue)
+![Project Status](https://img.shields.io/badge/Status-Model%20Architecture-blue)
 ![Visibility](https://img.shields.io/badge/Repository-Private-lightgrey)
 ![Primary Language](https://img.shields.io/badge/Primary%20Language-Python-3776AB)
 ![AI Framework](https://img.shields.io/badge/Framework-PyTorch-EE4C2C)
@@ -27,7 +27,7 @@ The long-term objective is to build an AI system capable of assisting with progr
 
 AetherMind is intended to be developed incrementally, beginning with foundational model research and progressing toward a complete developer-facing AI platform.
 
-**Important:** AetherMind is currently in the planning and architecture stage. Its proposed features and architecture are development goals, not claims of existing functionality.
+**Important:** AetherMind is under active development. Core model architecture and a minimal training loop are implemented and verified. Broader platform features remain development goals.
 
 ## 2. Vision
 
@@ -344,12 +344,12 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 - [ ] Document data and licensing strategy.
 
 ### Phase 2 — Development Foundation
-- [ ] Create repository structure.
-- [ ] Configure Python development environment.
-- [ ] Configure PyTorch.
+- [x] Create repository structure.
+- [x] Configure Python development environment.
+- [x] Configure PyTorch.
 - [ ] Establish local and cloud compute workflows.
 - [ ] Configure experiment tracking.
-- [ ] Create initial test infrastructure.
+- [x] Create initial test infrastructure.
 
 ### Phase 3 — Tokenizer Development
 - [ ] Select initial training corpus.
@@ -360,16 +360,16 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 - [x] Version tokenizer artifacts.
 
 ### Phase 4 — Custom Transformer Development
-- [ ] Implement embeddings.
-- [ ] Implement causal self-attention.
-- [ ] Implement Transformer blocks.
-- [ ] Implement language-model output head.
-- [ ] Build generation functionality.
-- [ ] Write architecture tests.
-- [ ] Verify forward and backward passes.
+- [x] Implement embeddings.
+- [x] Implement causal self-attention.
+- [x] Implement Transformer blocks.
+- [x] Implement language-model output head.
+- [x] Build generation functionality.
+- [x] Write architecture tests.
+- [x] Verify forward and backward passes.
 
 ### Phase 5 — Model Training
-- [ ] Build reproducible training pipeline.
+- [x] Build reproducible training pipeline. (minimal version)
 - [ ] Configure training and validation datasets.
 - [ ] Implement checkpointing.
 - [ ] Run initial training experiments.
@@ -422,13 +422,13 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 | Architecture | Proposed |
 | Hardware Assessment | Pending |
 | Tokenizer | In Progress (trained on a small seed corpus; needs a real, licensed corpus next) |
-| Custom Model | Not Started |
-| Training Pipeline | Not Started |
+| Custom Model | Architecture complete + minimal training loop (TINY verified) |
+| Training Pipeline | Minimal loop working (train_lm.py); needs scaling & logging |
 | Hybrid Integration | Not Started |
 | Web Application | Not Started |
 | Deployment | Not Started |
 
-**Current stage:** Planning and Architecture.
+**Current stage:** Model Architecture + initial training loop (Phase 4 largely complete).
 
 ## 15. Project Principles
 
