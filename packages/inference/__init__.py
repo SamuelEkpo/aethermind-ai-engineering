@@ -1,11 +1,10 @@
 """
-inference — loads trained AetherMind checkpoints and serves generation
-requests (used by apps/api, independent of the API framework itself so it
-can also be used from training/eval scripts or a CLI).
+inference — serving and generation utilities for AetherMind models.
 
-Planned contents (see roadmap Phase 4-5):
-    - engine.py     model loading + generate() entrypoint
-    - sampling.py   decoding strategies (greedy, top-k, top-p, temperature)
+Keeps model loading / generation separate from architecture (model_core)
+and from the HTTP layer (apps/api).
 """
 
-__all__: list[str] = []
+from packages.inference.engine import InferenceEngine
+
+__all__ = ["InferenceEngine"]
