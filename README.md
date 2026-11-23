@@ -339,7 +339,7 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 - [x] Select hybrid development approach.
 - [x] Establish proposed technology stack.
 - [x] Define initial system architecture.
-- [ ] Inspect available hardware.
+- [x] Inspect available hardware.
 - [ ] Finalize initial model specification.
 - [ ] Document data and licensing strategy.
 
@@ -420,7 +420,7 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 | Development Approach | Defined |
 | Technology Stack | Proposed |
 | Architecture | Proposed |
-| Hardware Assessment | Pending |
+| Hardware Assessment | Done (CPU-only local machine; see docs/research/hardware-assessment.md) |
 | Tokenizer | In Progress (trained on a small seed corpus; needs a real, licensed corpus next) |
 | Custom Model | Architecture complete + minimal training loop (TINY verified) |
 | Training Pipeline | Minimal loop working (train_lm.py); needs scaling & logging |
