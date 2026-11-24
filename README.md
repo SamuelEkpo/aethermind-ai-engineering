@@ -370,10 +370,10 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 
 ### Phase 5 — Model Training
 - [x] Build reproducible training pipeline. (minimal version)
-- [ ] Configure training and validation datasets.
-- [ ] Implement checkpointing.
-- [ ] Run initial training experiments.
-- [ ] Monitor training metrics.
+- [x] Configure training and validation datasets. (chronological split in train_lm.py)
+- [x] Implement checkpointing. (best/last/final + resumable trainer state)
+- [ ] Run initial training experiments. (at meaningful scale, beyond smoke tests)
+- [x] Monitor training metrics. (lightweight JSONL run logging; MLflow still tracked under Phase 2)
 - [ ] Evaluate model performance.
 - [ ] Document experimental results.
 
@@ -423,7 +423,7 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 | Hardware Assessment | Done (CPU-only local machine; see docs/research/hardware-assessment.md) |
 | Tokenizer | In Progress (trained on a small seed corpus; needs a real, licensed corpus next) |
 | Custom Model | Architecture complete + minimal training loop (TINY verified) |
-| Training Pipeline | Minimal loop working (train_lm.py); needs scaling & logging |
+| Training Pipeline | Resumable checkpointing + JSONL metrics logging (train_lm.py); needs a real-scale run |
 | Hybrid Integration | Not Started |
 | Web Application | API generate endpoint live (/v1/generate, /v1/model) |
 | Deployment | Not Started |
