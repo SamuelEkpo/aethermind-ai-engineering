@@ -33,7 +33,8 @@ class TokenEmbedding(nn.Module):
         """
         # Scale by sqrt(d_model) as in the original Transformer paper.
         # GPT-2 omits this; we keep it for better gradient scale at init.
-        return self.embedding(token_ids) * math.sqrt(self.d_model)
+        scaled: torch.Tensor = self.embedding(token_ids) * math.sqrt(self.d_model)
+        return scaled
 
 
 class PositionalEmbedding(nn.Module):
@@ -49,7 +50,8 @@ class PositionalEmbedding(nn.Module):
             FloatTensor of shape (1, seq_len, d_model) ready for broadcasting.
         """
         positions = torch.arange(seq_len, device=device)
-        return self.embedding(positions).unsqueeze(0)
+        encoded: torch.Tensor = self.embedding(positions).unsqueeze(0)
+        return encoded
 
 
 class InputEmbedding(nn.Module):
@@ -75,4 +77,5 @@ class InputEmbedding(nn.Module):
                 f"Sequence length {seq_len} exceeds model max_seq_len {self.max_seq_len}"
             )
         x = self.token(token_ids) + self.position(seq_len, device=token_ids.device)
-        return self.dropout(x)
+        out: torch.Tensor = self.dropout(x)
+        return out

@@ -8,8 +8,10 @@ loaders, etc.) have one clear place to live as the project grows.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 
@@ -18,8 +20,11 @@ from apps.api.core.logging import configure_logging
 from apps.api.routes.generate import router as generate_router
 from apps.api.routes.health import router as health_router
 
+if TYPE_CHECKING:
+    from packages.inference import InferenceEngine
 
-def _try_load_engine():
+
+def _try_load_engine() -> InferenceEngine | None:
     """Load InferenceEngine if a checkpoint exists; otherwise leave unloaded."""
     checkpoint = Path(settings.model_checkpoint_dir) / "lm_tiny"
     tokenizer = Path(settings.model_checkpoint_dir) / "tokenizer" / "tokenizer.json"
@@ -43,7 +48,7 @@ def _try_load_engine():
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     configure_logging()
     app.state.engine = _try_load_engine()
     # TODO(Phase 8): initialize DB engine, Redis pool here and tear down on shutdown.

@@ -21,6 +21,8 @@ from packages.model_core.config import ModelConfig
 class CausalSelfAttention(nn.Module):
     """Multi-head causal self-attention."""
 
+    causal_mask: torch.Tensor  # registered buffer; declared for type checking
+
     def __init__(self, config: ModelConfig) -> None:
         super().__init__()
         assert config.d_model % config.n_heads == 0
@@ -88,4 +90,5 @@ class CausalSelfAttention(nn.Module):
         y = att @ v  # (B, n_heads, T, d_head)
         y = y.transpose(1, 2).contiguous().view(B, T, C)  # re-assemble heads
 
-        return self.resid_dropout(self.proj(y))
+        out: torch.Tensor = self.resid_dropout(self.proj(y))
+        return out

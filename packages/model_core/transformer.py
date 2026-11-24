@@ -34,7 +34,8 @@ class FeedForward(nn.Module):
         self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.dropout(self.fc2(F.gelu(self.fc1(x))))
+        out: torch.Tensor = self.dropout(self.fc2(F.gelu(self.fc1(x))))
+        return out
 
 
 class TransformerBlock(nn.Module):
@@ -126,7 +127,7 @@ class AetherMindLM(nn.Module):
             x = block(x, attention_mask=attention_mask)
 
         x = self.ln_f(x)
-        logits = self.lm_head(x)
+        logits: torch.Tensor = self.lm_head(x)
 
         if labels is None:
             return logits
