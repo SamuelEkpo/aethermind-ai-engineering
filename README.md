@@ -341,7 +341,7 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 - [x] Define initial system architecture.
 - [x] Inspect available hardware.
 - [ ] Finalize initial model specification.
-- [ ] Document data and licensing strategy.
+- [x] Document data and licensing strategy. (see docs/data-governance/licensing-strategy.md)
 
 ### Phase 2 — Development Foundation
 - [x] Create repository structure.
