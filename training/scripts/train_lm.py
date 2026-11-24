@@ -2,12 +2,15 @@
 Reproducible training entrypoint for AetherMindLM.
 
 Features:
-  - chronological train/val split
+  - chronological train / val / test split (test is a true held-out set,
+    never touched by checkpoint-selection logic)
   - cosine LR decay with linear warmup
   - deterministic seed control
   - best + last + final checkpointing
   - resumable training state (optimizer, step, RNG, best_val)
   - JSONL metrics logging (train loss, val loss/perplexity, LR, throughput)
+  - a final test-set evaluation (via packages.evaluation.compute_perplexity)
+    reported once, after training, on the *best* checkpoint
 
 Usage:
     python -m training.scripts.train_lm --config tiny --steps 500
@@ -25,6 +28,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
+from packages.evaluation import compute_perplexity
 from packages.model_core import BASE, SMALL, TINY, AetherMindLM, ModelConfig
 from packages.tokenizer import BPETokenizer
 from torch.utils.data import DataLoader, Dataset
@@ -60,6 +64,10 @@ class TextDataset(Dataset):
         return {"input_ids": x, "labels": y}
 
 
+def has_windows(token_ids: list[int], seq_len: int) -> bool:
+    return len(token_ids) - seq_len > 0
+
+
 def load_token_ids(tokenizer_path: Path, corpus_dir: Path) -> list[int]:
     tokenizer = BPETokenizer.load(tokenizer_path)
     texts = [
@@ -71,6 +79,28 @@ def load_token_ids(tokenizer_path: Path, corpus_dir: Path) -> list[int]:
     for text in texts:
         ids.extend(tokenizer.encode(text))
     return ids
+
+
+def split_train_val_test(
+    token_ids: list[int], val_ratio: float, test_ratio: float
+) -> tuple[list[int], list[int], list[int]]:
+    """Chronological 3-way split: train (earliest) | val | test (latest).
+
+    Keeping val and test as later, disjoint slices of the corpus (rather
+    than e.g. a random shuffle) means "generalization" is measured against
+    content the model never saw during training, in the order it would
+    naturally appear — closer to how the model will actually be used.
+    Test is never used for checkpoint selection, only reported once at
+    the end, so it stays a meaningful held-out signal (README Section 12).
+    """
+    if val_ratio + test_ratio >= 1.0:
+        raise SystemExit(
+            f"--val-ratio + --test-ratio must be < 1.0 (got {val_ratio} + {test_ratio})"
+        )
+    n = len(token_ids)
+    train_end = int(n * (1.0 - val_ratio - test_ratio))
+    val_end = int(n * (1.0 - test_ratio))
+    return token_ids[:train_end], token_ids[train_end:val_end], token_ids[val_end:]
 
 
 def cosine_lr(
@@ -86,23 +116,6 @@ def cosine_lr(
     progress = (step - warmup_steps) / float(max(1, total_steps - warmup_steps))
     cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
     return base_lr * (min_lr_ratio + (1.0 - min_lr_ratio) * cosine)
-
-
-@torch.no_grad()
-def evaluate(model: AetherMindLM, loader: DataLoader, device: torch.device) -> float:
-    model.eval()
-    total_loss = 0.0
-    n = 0
-    for batch in loader:
-        input_ids = batch["input_ids"].to(device)
-        labels = batch["labels"].to(device)
-        _, loss = model(input_ids, labels=labels)
-        total_loss += loss.item()
-        n += 1
-        if n >= 20:
-            break
-    model.train()
-    return total_loss / max(n, 1)
 
 
 class MetricsLogger:
@@ -165,7 +178,25 @@ def main() -> None:
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--warmup-steps", type=int, default=50)
     parser.add_argument("--val-ratio", type=float, default=0.1)
+    parser.add_argument(
+        "--test-ratio",
+        type=float,
+        default=0.1,
+        help="Fraction of the corpus held out as a true test set, never used for checkpoint selection",
+    )
     parser.add_argument("--eval-every", type=int, default=50)
+    parser.add_argument(
+        "--eval-max-batches",
+        type=int,
+        default=20,
+        help="Cap on validation batches per eval during training (keeps eval cheap)",
+    )
+    parser.add_argument(
+        "--test-max-batches",
+        type=int,
+        default=None,
+        help="Cap on test batches for the final held-out report (default: evaluate the whole test set)",
+    )
     parser.add_argument(
         "--save-every",
         type=int,
@@ -221,18 +252,22 @@ def main() -> None:
     token_ids = load_token_ids(args.tokenizer, args.corpus_dir)
     print(f"Corpus tokens: {len(token_ids):,}")
 
-    split = int(len(token_ids) * (1.0 - args.val_ratio))
-    train_ids = token_ids[:split]
-    val_ids = token_ids[split:]
+    train_ids, val_ids, test_ids = split_train_val_test(token_ids, args.val_ratio, args.test_ratio)
 
     seq_len = min(args.seq_len, config.max_seq_len)
     train_ds = TextDataset(train_ids, seq_len=seq_len)
-    val_ds = TextDataset(val_ids, seq_len=seq_len)
     if len(train_ds) == 0:
         raise SystemExit("Training split too short for the requested seq_len")
 
+    has_val = has_windows(val_ids, seq_len)
+    has_test = has_windows(test_ids, seq_len)
+    print(
+        f"Train windows: {len(train_ds):,} | "
+        f"Val tokens: {len(val_ids):,} ({'ok' if has_val else 'too short, skipped'}) | "
+        f"Test tokens: {len(test_ids):,} ({'ok' if has_test else 'too short, skipped'})"
+    )
+
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, drop_last=True)
-    val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, drop_last=False)
 
     last_dir = args.output.parent / (args.output.name + "_last")
     state_dir = args.output.parent / (args.output.name + "_state")
@@ -248,7 +283,6 @@ def main() -> None:
     model.to(device)
 
     print(f"Parameters: {model.count_parameters():,}")
-    print(f"Train windows: {len(train_ds):,} | Val windows: {len(val_ds):,}")
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.1)
 
@@ -269,6 +303,8 @@ def main() -> None:
             "batch_size": args.batch_size,
             "seq_len": seq_len,
             "lr": args.lr,
+            "val_ratio": args.val_ratio,
+            "test_ratio": args.test_ratio,
             "seed": args.seed,
             "resumed": resumed,
             "start_step": start_step,
@@ -313,11 +349,18 @@ def main() -> None:
         periodic_save = args.save_every > 0 and step % args.save_every == 0
         at_eval = step % args.eval_every == 0 or step == args.steps
 
-        if at_eval and len(val_ds) > 0:
-            val_loss = evaluate(model, val_loader, device)
-            ppl = math.exp(min(val_loss, 20.0))
-            print(f"         val_loss={val_loss:.4f}  ppl={ppl:.2f}")
-            logger.log(step=step, val_loss=val_loss, perplexity=ppl)
+        if at_eval and has_val:
+            metrics = compute_perplexity(
+                model,
+                val_ids,
+                seq_len=seq_len,
+                batch_size=args.batch_size,
+                device=device,
+                max_batches=args.eval_max_batches,
+            )
+            val_loss = metrics["loss"]
+            print(f"         val_loss={val_loss:.4f}  ppl={metrics['perplexity']:.2f}")
+            logger.log(step=step, val_loss=val_loss, perplexity=metrics["perplexity"])
             if val_loss < best_val:
                 best_val = val_loss
                 args.output.mkdir(parents=True, exist_ok=True)
@@ -344,6 +387,35 @@ def main() -> None:
     logger.log(step=step, event_final=True, best_val=best_val)
     print(f"Saved final checkpoint -> {final_dir}")
     print(f"Best val loss: {best_val:.4f}")
+
+    # Final held-out test-set report, on the *best* checkpoint (never the
+    # in-progress "last" weights) — this is the one number that was never
+    # used to make any decision during training.
+    if has_test:
+        eval_source = args.output if (args.output / "pytorch_model.bin").exists() else final_dir
+        best_model = AetherMindLM.from_pretrained(eval_source, map_location=str(device))
+        best_model.to(device)
+        test_metrics = compute_perplexity(
+            best_model,
+            test_ids,
+            seq_len=seq_len,
+            batch_size=args.batch_size,
+            device=device,
+            max_batches=args.test_max_batches,
+        )
+        print(
+            f"Test (held-out, best checkpoint): loss={test_metrics['loss']:.4f}  "
+            f"ppl={test_metrics['perplexity']:.2f}  "
+            f"tokens={int(test_metrics['tokens_evaluated']):,}"
+        )
+        logger.log(
+            event_test=True,
+            test_loss=test_metrics["loss"],
+            test_perplexity=test_metrics["perplexity"],
+            test_tokens_evaluated=test_metrics["tokens_evaluated"],
+        )
+    else:
+        print("Test split too short to evaluate — skipped.")
 
 
 if __name__ == "__main__":

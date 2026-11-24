@@ -7,8 +7,7 @@ from __future__ import annotations
 
 import pytest
 import torch
-
-from packages.model_core import AetherMindLM, ModelConfig, TINY
+from packages.model_core import TINY, AetherMindLM, ModelConfig
 
 
 @pytest.fixture

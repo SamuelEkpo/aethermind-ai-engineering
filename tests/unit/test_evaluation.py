@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import torch
-
 from packages.evaluation import compute_perplexity
-from packages.model_core import AetherMindLM, TINY
+from packages.model_core import TINY, AetherMindLM
 
 
 def test_compute_perplexity_returns_finite_metrics() -> None:

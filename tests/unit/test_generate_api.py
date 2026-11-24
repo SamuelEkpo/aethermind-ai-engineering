@@ -7,9 +7,8 @@ the endpoints must return 503 instead of crashing.
 
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
-
 from apps.api.main import create_app
+from fastapi.testclient import TestClient
 
 
 def test_health_still_works() -> None:

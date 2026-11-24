@@ -8,7 +8,7 @@ Lower is better. Useful for comparing checkpoints on the same tokenizer/data.
 from __future__ import annotations
 
 import math
-from typing import Iterable
+from collections.abc import Iterable
 
 import torch
 from torch.utils.data import DataLoader, Dataset
@@ -58,9 +58,8 @@ def compute_perplexity(
 
     total_loss = 0.0
     total_tokens = 0
-    n_batches = 0
 
-    for batch in loader:
+    for n_batches, batch in enumerate(loader, start=1):
         input_ids = batch["input_ids"].to(device)
         labels = batch["labels"].to(device)
         _, loss = model(input_ids, labels=labels)
@@ -68,7 +67,6 @@ def compute_perplexity(
         n_tok = labels.numel()
         total_loss += loss.item() * n_tok
         total_tokens += n_tok
-        n_batches += 1
         if max_batches is not None and n_batches >= max_batches:
             break
 
