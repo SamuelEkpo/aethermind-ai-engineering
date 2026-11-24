@@ -26,6 +26,7 @@ class IngestReport:
     bytes_out: int = 0
     dropped: dict[str, int] = field(default_factory=dict)
     redactions: dict[str, int] = field(default_factory=dict)
+    dropped_files: dict[str, list[str]] = field(default_factory=dict)
     created: str = field(default_factory=lambda: datetime.now(UTC).date().isoformat())
 
 
@@ -76,6 +77,13 @@ def render_manifest(report: IngestReport) -> str:
         "",
     ]
     lines += _counts("Dropped files", report.dropped, "No files were dropped.")
+    if report.dropped_files:
+        lines += ["## Dropped file paths", ""]
+        for reason, paths in sorted(report.dropped_files.items()):
+            extra = report.dropped.get(reason, 0) - len(paths)
+            suffix = f" (+{extra} more)" if extra > 0 else ""
+            lines.append(f"- {reason}: " + ", ".join(paths) + suffix)
+        lines.append("")
     lines += _counts("PII redactions", report.redactions, "No PII patterns were redacted.")
     lines += [
         "## Secret scan",

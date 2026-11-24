@@ -17,8 +17,19 @@ from .secret_scan import scan_secrets
 SECRET_ACTIONS = ("fail", "exclude")
 
 
+MAX_LISTED_PATHS = 25
+
+
 def _bump(counts: dict[str, int], key: str, amount: int = 1) -> None:
     counts[key] = counts.get(key, 0) + amount
+
+
+def _drop(report: IngestReport, reason: str, rel_path: str) -> None:
+    """Count a dropped file and remember its path (up to MAX_LISTED_PATHS per reason)."""
+    _bump(report.dropped, reason)
+    listed = report.dropped_files.setdefault(reason, [])
+    if len(listed) < MAX_LISTED_PATHS:
+        listed.append(rel_path)
 
 
 def _iter_files(
@@ -80,23 +91,23 @@ def ingest_source(
         try:
             data = path.read_bytes()
         except OSError:
-            _bump(report.dropped, "unreadable")
+            _drop(report, "unreadable", rel)
             continue
 
         text, reason = load_text(data, max_bytes)
         if text is None:
-            _bump(report.dropped, reason or "rejected")
+            _drop(report, reason or "rejected", rel)
             continue
 
         hits = scan_secrets(text)
         if hits:
             if secret_action == "fail":
                 raise SecretFoundError(f"Possible secret ({', '.join(hits)}) in {rel}")
-            _bump(report.dropped, "secret")
+            _drop(report, "secret", rel)
             continue
 
         if deduper.is_duplicate(text):
-            _bump(report.dropped, "duplicate")
+            _drop(report, "duplicate", rel)
             continue
 
         text, redactions = redact_pii(text)

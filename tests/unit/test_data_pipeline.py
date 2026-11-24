@@ -234,6 +234,7 @@ def test_ingest_happy_path_filters_dedups_and_redacts(tmp_path: Path) -> None:
     assert report.files_seen == 5
     assert report.files_kept == 3
     assert report.dropped == {"binary": 1, "duplicate": 1}
+    assert report.dropped_files == {"binary": ["pkg/blob.py"], "duplicate": ["pkg/dup.py"]}
     assert report.redactions == {"email": 1}
     text = out.read_text(encoding="utf-8")
     assert "def b()" in text
@@ -311,8 +312,27 @@ def test_render_manifest_records_provenance_and_counts(tmp_path: Path) -> None:
     assert "abc123" in manifest
     assert "MIT" in manifest
     assert "| duplicate | 1 |" in manifest
+    assert "- duplicate: b.py" in manifest
     assert "No PII patterns were redacted." in manifest
     assert "Policy on a hit: fail" in manifest
+
+
+def test_render_manifest_notes_when_dropped_paths_are_truncated() -> None:
+    report = IngestReport(
+        name="demo",
+        source_url="u",
+        commit="c",
+        license_ids=("MIT",),
+        license_evidence=("LICENSE",),
+        license_method="text-heuristic",
+        excluded_dirs=(),
+        extensions=(".py",),
+        max_file_kb=1,
+        secret_action="fail",
+        dropped={"empty": 30},
+        dropped_files={"empty": [f"f{i}.py" for i in range(25)]},
+    )
+    assert "(+5 more)" in render_manifest(report)
 
 
 # ----------------------------------------------------------------------
