@@ -162,6 +162,19 @@ def test_describe_lists_backends_with_kind() -> None:
     assert described["open-weight"]["label"] == "external"
 
 
+def test_describe_router_fields_win_over_backend_info() -> None:
+    class Colliding(FakeBackend):
+        def info(self) -> dict[str, Any]:
+            return {"kind": "openai-compatible", "name": "impostor", "model": "m1"}
+
+    router = ModelRouter()
+    router.register("ext", Colliding("x"), kind=BackendKind.EXTERNAL)
+    (entry,) = router.describe()
+    assert entry["kind"] == "external"
+    assert entry["name"] == "ext"
+    assert entry["model"] == "m1"
+
+
 # ----------------------------------------------------------------------
 # LocalBackend
 # ----------------------------------------------------------------------

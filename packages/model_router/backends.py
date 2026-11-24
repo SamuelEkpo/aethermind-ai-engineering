@@ -110,3 +110,7 @@ class OpenAICompatibleBackend:
 
     def info(self) -> dict[str, Any]:
         return {"base_url": self.base_url, "model": self.model, "kind": "openai-compatible"}
+
+    def close(self) -> None:
+        """Release the underlying HTTP client."""
+        self._client.close()

@@ -387,8 +387,8 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 - [ ] Compare model versions.
 
 ### Phase 7 — Hybrid AI Integration
-- [ ] Implement model router.
-- [ ] Integrate an optional open-weight model.
+- [x] Implement model router. (packages/model_router: explicit selection, task routes, opt-in fallback)
+- [x] Integrate an optional open-weight model. (generic OpenAI-compatible backend; no specific model validated yet)
 - [ ] Implement code retrieval.
 - [ ] Add repository indexing.
 - [ ] Implement context management.
@@ -424,8 +424,8 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 | Tokenizer | In Progress (trained on a small seed corpus; needs a real, licensed corpus next) |
 | Custom Model | Architecture complete + minimal training loop (TINY verified) |
 | Training Pipeline | Resumable checkpointing + JSONL metrics logging (train_lm.py); needs a real-scale run |
-| Hybrid Integration | Not Started |
-| Web Application | API generate endpoint live (/v1/generate, /v1/model) |
+| Hybrid Integration | In Progress (model router + optional external backend done; retrieval and tools not started) |
+| Web Application | API live (/v1/generate with model routing, /v1/models, /v1/model) |
 | Deployment | Not Started |
 
 **Current stage:** Model Architecture + initial training loop (Phase 4 largely complete).

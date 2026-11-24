@@ -45,6 +45,16 @@ class Settings(BaseSettings):
     tokenizer_vocab_size: int = 32000
     device: Literal["cpu", "cuda", "mps"] = "cpu"
 
+    # --- Optional external (open-weight) model, OpenAI-compatible endpoint ---
+    # Disabled unless both base URL and model name are set. Requests only reach
+    # it when a caller names it explicitly or external_fallback is enabled, so
+    # private code is not sent off-box by default.
+    external_llm_base_url: str | None = None
+    external_llm_model: str | None = None
+    external_llm_api_key: str | None = None
+    external_llm_timeout: float = 30.0
+    external_fallback: bool = False
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"

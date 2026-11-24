@@ -17,6 +17,7 @@ from fastapi import FastAPI
 
 from apps.api.core.config import settings
 from apps.api.core.logging import configure_logging
+from apps.api.core.routing import build_external_backend
 from apps.api.routes.generate import router as generate_router
 from apps.api.routes.health import router as health_router
 
@@ -51,9 +52,13 @@ def _try_load_engine() -> InferenceEngine | None:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     configure_logging()
     app.state.engine = _try_load_engine()
+    app.state.external_backend = build_external_backend(settings)
     # TODO(Phase 8): initialize DB engine, Redis pool here and tear down on shutdown.
     yield
     app.state.engine = None
+    if app.state.external_backend is not None:
+        app.state.external_backend.close()
+    app.state.external_backend = None
 
 
 def create_app() -> FastAPI:

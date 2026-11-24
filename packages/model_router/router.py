@@ -115,6 +115,7 @@ class ModelRouter:
     def describe(self) -> list[dict[str, Any]]:
         """Static description of registered backends (for a /v1/models endpoint)."""
         return [
-            {"name": e.name, "kind": e.kind.value, **e.backend.info()}
+            # Router-owned fields go last so a backend's own info() can never override them.
+            {**e.backend.info(), "name": e.name, "kind": e.kind.value}
             for e in self._backends.values()
         ]
