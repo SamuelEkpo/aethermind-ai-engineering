@@ -69,7 +69,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --cov=apps --cov=packages --cov-report=term-missing"
+addopts = "-ra -q --cov=apps --cov=packages --cov=training --cov-report=term-missing"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 
