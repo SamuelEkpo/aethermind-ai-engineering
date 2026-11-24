@@ -1,13 +1,26 @@
-"""
-model_router — decides, per request, whether to serve from the custom
-AetherMind model, an integrated open-weight model, or a tool/retrieval-only
-path. This is the seam described in the README's "Hybrid Model Integration"
-section: it keeps evaluation of the custom model separable from whatever
-else is backing a given response.
+"""Model routing across the custom AetherMind model and optional external models."""
 
-Planned contents (see roadmap Phase 7):
-    - router.py     routing policy / model selection logic
-    - registry.py   registered model backends and their capabilities
-"""
+from .backends import LocalBackend, OpenAICompatibleBackend
+from .base import (
+    BackendError,
+    BackendKind,
+    GenerationBackend,
+    NoBackendAvailableError,
+    RouterError,
+    RoutingPolicy,
+    UnknownBackendError,
+)
+from .router import ModelRouter
 
-__all__: list[str] = []
+__all__ = [
+    "BackendError",
+    "BackendKind",
+    "GenerationBackend",
+    "LocalBackend",
+    "ModelRouter",
+    "NoBackendAvailableError",
+    "OpenAICompatibleBackend",
+    "RouterError",
+    "RoutingPolicy",
+    "UnknownBackendError",
+]
