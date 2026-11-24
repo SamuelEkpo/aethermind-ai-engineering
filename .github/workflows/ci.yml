@@ -34,7 +34,7 @@ jobs:
         run: ruff check .
 
       - name: Type check (mypy)
-        run: mypy apps packages
+        run: mypy apps packages training
 
       - name: Run tests (unit and integration)
         run: pytest --cov-report=xml --cov-fail-under=90
