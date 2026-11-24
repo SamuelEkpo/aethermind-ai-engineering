@@ -1,0 +1,18 @@
+# Starting-point preset for a single consumer or cloud GPU. These values are
+# untuned first guesses, to be adjusted once a real corpus exists. Keys are
+# the train_lm command-line flag names; flags given on the command line
+# override anything set here.
+
+config = "small"
+steps = 20000
+batch_size = 16
+seq_len = 256
+lr = 6e-4
+warmup_steps = 1000
+val_ratio = 0.05
+test_ratio = 0.05
+eval_every = 500
+save_every = 1000
+seed = 42
+output = "training/checkpoints/lm_small"
+device = "cuda"

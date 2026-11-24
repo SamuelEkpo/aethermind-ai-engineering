@@ -229,6 +229,7 @@ datasets/curated/*
 training/checkpoints/*
 !training/checkpoints/.gitkeep
 mlruns/
+*_log.txt
 *.ckpt
 *.pt
 *.safetensors

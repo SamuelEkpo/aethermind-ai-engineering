@@ -1,0 +1,16 @@
+# Smoke-test preset: runs on a CPU in minutes. Matches the built-in defaults.
+# Keys are the train_lm command-line flag names; flags given on the command
+# line override anything set here.
+
+config = "tiny"
+steps = 500
+batch_size = 8
+seq_len = 64
+lr = 3e-4
+warmup_steps = 50
+val_ratio = 0.1
+test_ratio = 0.1
+eval_every = 50
+seed = 42
+output = "training/checkpoints/lm_tiny"
+device = "cpu"

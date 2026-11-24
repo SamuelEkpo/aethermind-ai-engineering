@@ -1,0 +1,18 @@
+# Starting-point preset for a cloud GPU run of the base model. These values
+# are untuned first guesses, to be adjusted once a real corpus exists. Keys
+# are the train_lm command-line flag names; flags given on the command line
+# override anything set here.
+
+config = "base"
+steps = 100000
+batch_size = 32
+seq_len = 512
+lr = 3e-4
+warmup_steps = 2000
+val_ratio = 0.02
+test_ratio = 0.02
+eval_every = 1000
+save_every = 2000
+seed = 42
+output = "training/checkpoints/lm_base"
+device = "cuda"

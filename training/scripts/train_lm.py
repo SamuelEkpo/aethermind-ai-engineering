@@ -24,6 +24,7 @@ import json
 import math
 import random
 import time
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -169,7 +170,52 @@ def load_training_state(state_dir: Path, optimizer: torch.optim.Optimizer) -> tu
     return state["step"], state["best_val"]
 
 
-def main() -> None:
+def load_config_file(path: Path) -> dict[str, Any]:
+    """Read a TOML run configuration.
+
+    Keys are the command-line flag names; dashes and underscores are both
+    accepted (batch_size or batch-size).
+    """
+    try:
+        with path.open("rb") as f:
+            raw = tomllib.load(f)
+    except FileNotFoundError:
+        raise SystemExit(f"Config file not found: {path}") from None
+    except tomllib.TOMLDecodeError as exc:
+        raise SystemExit(f"Invalid TOML in {path}: {exc}") from None
+    return {key.replace("-", "_"): value for key, value in raw.items()}
+
+
+def parse_args_with_config_file(parser: argparse.ArgumentParser) -> argparse.Namespace:
+    """Parse the command line, using --config-file values as defaults.
+
+    Precedence (highest first): explicit command-line flags, config file,
+    built-in defaults.
+    """
+    pre = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    pre.add_argument("--config-file", type=Path, default=None)
+    known, _ = pre.parse_known_args()
+
+    if known.config_file is not None:
+        values = load_config_file(known.config_file)
+        valid = set(vars(parser.parse_args([]))) - {"config_file"}
+        unknown = sorted(set(values) - valid)
+        if unknown:
+            raise SystemExit(
+                f"Unknown key(s) in {known.config_file}: {', '.join(unknown)}. "
+                f"Valid keys: {', '.join(sorted(valid))}"
+            )
+        if "config" in values and values["config"] not in CONFIGS:
+            raise SystemExit(
+                f"Invalid config {values['config']!r} in {known.config_file}; "
+                f"choose from {', '.join(CONFIGS)}"
+            )
+        parser.set_defaults(**values)
+
+    return parser.parse_args()
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", choices=list(CONFIGS.keys()), default="tiny")
     parser.add_argument("--steps", type=int, default=500)
@@ -223,7 +269,17 @@ def main() -> None:
         help="JSONL metrics log path (default: <output>_logs/metrics.jsonl)",
     )
     parser.add_argument("--device", default="cpu")
-    args = parser.parse_args()
+    parser.add_argument(
+        "--config-file",
+        type=Path,
+        default=None,
+        help="TOML file of default argument values; explicit command-line flags override it",
+    )
+    return parser
+
+
+def main() -> None:
+    args = parse_args_with_config_file(build_parser())
 
     set_seed(args.seed)
     base_config: ModelConfig = CONFIGS[args.config]
@@ -299,6 +355,7 @@ def main() -> None:
         log_path,
         {
             "config": args.config,
+            "config_file": str(args.config_file) if args.config_file else None,
             "steps": args.steps,
             "batch_size": args.batch_size,
             "seq_len": seq_len,
