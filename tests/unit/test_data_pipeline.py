@@ -10,7 +10,7 @@ from packages.data_pipeline.dedup import ExactDeduper
 from packages.data_pipeline.errors import IngestError, LicenseError, SecretFoundError
 from packages.data_pipeline.filters import load_text
 from packages.data_pipeline.licenses import ALLOWED_SPDX, check_source_license, detect_license
-from packages.data_pipeline.manifest import IngestReport, render_manifest
+from packages.data_pipeline.manifest import IngestReport, read_consumed_by, render_manifest
 from packages.data_pipeline.pii import redact_pii
 from packages.data_pipeline.pipeline import ingest_source
 from packages.data_pipeline.secret_scan import scan_secrets
@@ -338,6 +338,55 @@ def test_render_manifest_notes_when_dropped_paths_are_truncated() -> None:
 # ----------------------------------------------------------------------
 # CLI
 # ----------------------------------------------------------------------
+def test_docs_page_named_license_does_not_exclude_docs(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path / "r", {"src/s.py": "s = 1\n", "docs/guide.md": "# Guide\n"})
+    page = "BSD-3-Clause License\n====================\n\n.. literalinclude:: ../LICENSE\n"
+    (repo / "docs" / "license.rst").write_text(page, encoding="utf-8")
+    assert check_source_license(repo).excluded_dirs == ()
+
+
+def test_unrecognised_nested_license_outside_docs_still_excludes(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path / "r", {"src/s.py": "s = 1\n"})
+    (repo / "ext").mkdir()
+    (repo / "ext" / "LICENSE").write_text("Copyright 2019 Someone. All rights reserved.\n")
+    assert check_source_license(repo).excluded_dirs == ("ext",)
+
+
+def test_recognised_disallowed_license_in_docs_still_excludes(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path / "r", {"src/s.py": "s = 1\n"})
+    (repo / "docs").mkdir()
+    (repo / "docs" / "LICENSE").write_text(GPL_TEXT, encoding="utf-8")
+    assert check_source_license(repo).excluded_dirs == ("docs",)
+
+
+def test_read_consumed_by_extracts_bullets() -> None:
+    text = "# M\n\n## Consumed by\n\n- tokenizer_v2\n- lm_run\n\n## Other\n- not this\n"
+    assert read_consumed_by(text) == ["- tokenizer_v2", "- lm_run"]
+
+
+def test_read_consumed_by_ignores_placeholder_and_missing_section() -> None:
+    assert read_consumed_by("## Consumed by\n\n- (none yet)\n") == []
+    assert read_consumed_by("# no such section\n") == []
+
+
+def test_render_manifest_lists_consumed_by_entries(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path / "r", {"a.py": "a = 1\n"})
+    report = ingest(repo, tmp_path / "out.txt")
+    assert "- tokenizer_v2" in render_manifest(report, ["- tokenizer_v2"])
+    assert "- (none yet)" in render_manifest(report)
+
+
+def test_cli_rerun_preserves_consumed_by(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path / "r", {"a.py": "a = 1\n"})
+    out = tmp_path / "out.txt"
+    manifest = tmp_path / "demo.md"
+    assert cli_main(_cli_args(repo, out, manifest)) == 0
+    edited = manifest.read_text(encoding="utf-8").replace("- (none yet)", "- training/run_1")
+    manifest.write_text(edited, encoding="utf-8")
+    assert cli_main(_cli_args(repo, out, manifest)) == 0
+    assert "- training/run_1" in manifest.read_text(encoding="utf-8")
+
+
 def _cli_args(repo: Path, out: Path, manifest: Path, *extra: str) -> list[str]:
     return [
         "--source",

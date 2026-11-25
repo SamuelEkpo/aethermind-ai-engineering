@@ -79,6 +79,17 @@ def detect_license(text: str) -> str | None:
     return None
 
 
+# Documentation trees often hold pages named license.md/license.rst that merely
+# include or describe the real license. An unrecognised file there is a docs page,
+# not a competing license. A recognised but disallowed license text still excludes
+# its directory, wherever it is.
+_DOC_DIRS: frozenset[str] = frozenset({"docs", "doc", "documentation"})
+
+
+def _in_docs_dir(rel: Path) -> bool:
+    return any(part.lower() in _DOC_DIRS for part in rel.parts[:-1])
+
+
 def _license_files(root: Path) -> list[Path]:
     found: list[Path] = []
     for dirpath, dirnames, filenames in os.walk(root):
@@ -116,7 +127,7 @@ def check_source_license(root: Path) -> LicenseResult:
                 )
             ids.add(spdx)
             evidence.append(rel.as_posix())
-        elif spdx not in ALLOWED_SPDX:
+        elif spdx not in ALLOWED_SPDX and not (spdx is None and _in_docs_dir(rel)):
             excluded.add(path.parent.relative_to(root).as_posix())
 
     if not ids:

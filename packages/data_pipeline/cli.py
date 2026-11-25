@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 from .errors import IngestError
-from .manifest import render_manifest
+from .manifest import read_consumed_by, render_manifest
 from .pipeline import SECRET_ACTIONS, ingest_source
 
 _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
@@ -74,7 +74,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(render_manifest(report), encoding="utf-8")
+    consumed_by: list[str] = []
+    if manifest_path.exists():
+        consumed_by = read_consumed_by(manifest_path.read_text(encoding="utf-8"))
+    manifest_path.write_text(render_manifest(report, consumed_by), encoding="utf-8")
     print(
         f"{out_path}: {report.bytes_out} bytes from {report.files_kept} of "
         f"{report.files_seen} files; manifest: {manifest_path}"

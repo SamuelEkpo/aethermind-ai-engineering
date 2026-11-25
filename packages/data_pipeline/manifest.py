@@ -41,8 +41,28 @@ def _counts(title: str, counts: dict[str, int], empty: str) -> list[str]:
     return lines
 
 
-def render_manifest(report: IngestReport) -> str:
-    """Render the report as a Markdown manifest."""
+def read_consumed_by(text: str) -> list[str]:
+    """Return the bullet lines under '## Consumed by' in an existing manifest."""
+    lines = text.splitlines()
+    try:
+        start = lines.index("## Consumed by") + 1
+    except ValueError:
+        return []
+    items: list[str] = []
+    for line in lines[start:]:
+        if line.startswith("## "):
+            break
+        if line.startswith("- ") and line != "- (none yet)":
+            items.append(line)
+    return items
+
+
+def render_manifest(report: IngestReport, consumed_by: list[str] | None = None) -> str:
+    """Render the report as a Markdown manifest.
+
+    ``consumed_by`` carries over the 'Consumed by' bullets of a manifest that is
+    being regenerated, so re-ingesting a source does not erase its usage record.
+    """
     evidence = ", ".join(report.license_evidence)
     lines = [
         f"# Corpus manifest: {report.name}",
@@ -99,7 +119,7 @@ def render_manifest(report: IngestReport) -> str:
         "",
         "## Consumed by",
         "",
-        "- (none yet)",
+        *(consumed_by or ["- (none yet)"]),
         "",
     ]
     return "\n".join(lines)
