@@ -51,6 +51,8 @@ def test_train_lm_resume_round_trip(tmp_path: Path, monkeypatch) -> None:
         "2",
         "--val-ratio",
         "0.2",
+        "--test-ratio",
+        "0.2",
         "--eval-every",
         "3",
         "--save-every",
@@ -87,6 +89,9 @@ def test_train_lm_resume_round_trip(tmp_path: Path, monkeypatch) -> None:
     assert lines[0]["event"] == "run_start"
     assert lines[0]["resumed"] is False
     assert any(line.get("event_final") for line in lines)
+    test_events = [line for line in lines if line.get("event_test")]
+    assert len(test_events) == 1
+    assert test_events[0]["test_loss"] > 0
 
     # Second run: resume and train 6 more steps (to step 12).
     _run(monkeypatch, ["--steps", "12", "--resume", *common])
