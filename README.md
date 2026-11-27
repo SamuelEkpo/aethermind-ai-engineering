@@ -389,8 +389,8 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 ### Phase 7 — Hybrid AI Integration
 - [x] Implement model router. (packages/model_router: explicit selection, task routes, opt-in fallback)
 - [x] Integrate an optional open-weight model. (generic OpenAI-compatible backend; no specific model validated yet)
-- [ ] Implement code retrieval.
-- [ ] Add repository indexing.
+- [x] Implement code retrieval. (packages/code_intelligence: identifier-aware BM25; embedding-based semantic retrieval still planned; not yet exposed via the API)
+- [x] Add repository indexing. (RepoIndex: scan, chunk, search, save/load; files containing secrets are never indexed)
 - [ ] Implement context management.
 - [ ] Add controlled tool execution.
 
@@ -424,7 +424,7 @@ Evaluation datasets will be held out from training to reduce data leakage and mi
 | Tokenizer | In Progress (trained on a small seed corpus; needs a real, licensed corpus next) |
 | Custom Model | Architecture complete + minimal training loop (TINY verified) |
 | Training Pipeline | Resumable checkpointing + JSONL metrics logging (train_lm.py); needs a real-scale run |
-| Hybrid Integration | In Progress (model router + optional external backend done; retrieval and tools not started) |
+| Hybrid Integration | In Progress (model router, optional external backend, BM25 code retrieval and repository indexing done; API exposure, context management and tools not started) |
 | Web Application | API live (/v1/generate with model routing, /v1/models, /v1/model) |
 | Deployment | Not Started |
 
